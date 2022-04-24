@@ -1,6 +1,6 @@
 import socket 
 import threading
-from FTP.sender import FTP_Sender
+from FTP.FTP import FTP_Sender
 
 # Initialize main server variables
 BUFFER              = 64
