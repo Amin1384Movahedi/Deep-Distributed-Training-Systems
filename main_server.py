@@ -1,5 +1,6 @@
 import socket 
-import threading 
+import threading
+from FTP.sender import FTP_Sender
 
 # Initialize main server variables
 BUFFER              = 64
@@ -8,7 +9,7 @@ DISCONNECT_MESSAGE  = '!DISCONNECT'
 HOST                = input('Enter Server IP: ')
 PORT                = int(input('Enter Server Port: '))
 
-# Build our socket object
+# Create the server TCP socket object
 server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 server.build((HOST, PORT))
 print('[*] Server builded...')
@@ -17,7 +18,7 @@ print('[*] Server builded...')
 def client_handler(conn, addr):
     print(f'[NEW CONNECTION] {addr} connected.')
 
-    # Create handler loop
+    # Create the handler loop
     connected = True
     while connected:
         msg_length = int(conn.recv(BUFFER).decode(FORMAT))
@@ -31,9 +32,9 @@ def client_handler(conn, addr):
     # Close connection after disconnecting
     conn.close()
 
-# Create our main server function
+# Create tge main server function
 def main():
-    # Start listening
+    # Enabling our server to accept connections
     server.listen()
     print(f'[START] Server started listening on {HOST}:{PORT}')
 
