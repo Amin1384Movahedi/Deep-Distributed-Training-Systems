@@ -1,8 +1,8 @@
 import socket 
 import threading 
 
-# Initialize main variables
-HEADER              = 64
+# Initialize main server variables
+BUFFER              = 64
 FORMAT              = 'utf-8'
 DISCONNECT_MESSAGE  = '!DISCONNECT'
 HOST                = input('Enter Server IP: ')
@@ -20,7 +20,7 @@ def client_handler(conn, addr):
     # Create handler loop
     connected = True
     while connected:
-        msg_length = int(conn.recv(HEADER).decode(FORMAT))
+        msg_length = int(conn.recv(BUFFER).decode(FORMAT))
         msg = conn.recv(msg_length).decode(FORMAT)
 
         if msg == DISCONNECT_MESSAGE:
