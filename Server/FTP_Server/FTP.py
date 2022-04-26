@@ -4,7 +4,7 @@ import tqdm
 
 # This FTP module will send model file in .h5 format and config thats includes num of epochs, 
 # batch_size, optimizer algorithm and loss function.
-# alse Reciver function will recive trained model file in .h5 format and training logs in .zip format.
+# also Reciver function will recive trained model file in .h5 format and training logs in .zip format.
 
 # Create our Sender function
 def FTP_Sender(model_path, config_path, conn, addr):
@@ -148,3 +148,36 @@ def FTP_Reciver(conn, addr):
             progress.update(len(bytes_read))
 
     print(f'{filename} recived from {addr}')
+
+# Create the DataSet Sender function
+def Dataset2Client(conn, addr, bytes, dataset_name):
+    # Initialize main FTP Server variables
+    # receive 4096 bytes each time
+    BUFFER_SIZE = 4096
+    FORMAT      = 'utf-8'
+
+    print(f'[FTP] Sending {dataset_name} dataset to {addr}')
+
+    # ============== Start sending model file ============== 
+    # Send dataset size
+    conn.send(str(len(bytes)).encode(FORMAT))
+
+    # Start sending the model file
+    progress = tqdm.tqdm(range(len(bytes)), f"Sending {dataset_name}", unit="B", unit_scale=True, unit_divisor=1024)
+    print(f'[START TRANSFER PROCESS] Sending model to {addr}')
+    while True:
+        batches = []
+        for offset in range(0, len(bytes), BUFFER_SIZE):
+            bytes_read = bytes[offset: offset + BUFFER_SIZE]
+
+            if not bytes_read:
+                # File transmitting is done
+                break
+
+            # We use sendall to assure transimission in busy networks
+            conn.sendall(bytes_read)
+
+            # Update the progress bar
+            progress.update(len(bytes_read))
+
+    print(f'Model file was sended to {addr}')
