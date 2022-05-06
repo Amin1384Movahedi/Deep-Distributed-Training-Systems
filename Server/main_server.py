@@ -1,10 +1,12 @@
 import socket 
 import sys 
 import os 
-import sqlite3
 import threading
 from FTP_Server.FTP import *
 from DataSet_Reader.DataReader import Reader
+from config_generator.config_gen import config
+from Client_multihandler_trainer.trainer_multihandler import client_handler_train
+from Client_multihandler_receiver.multihandler_receiver import client_handler_recv
 
 # Initialize main server variables
 BUFFER              = 4096
@@ -12,37 +14,30 @@ FORMAT              = 'utf-8'
 DISCONNECT_MESSAGE  = '!DISCONNECT'
 HOST                = input('Enter Server IP: ')
 PORT                = int(input('Enter Server Port: '))
-model_name          = input('Enter model file name: ')
+status              = input('Do you wanna start training? <Y/n>: ')
+
+# Create the server TCP socket object and bind that
+server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+server.bind((HOST, PORT))
+print('[*] Server builded...')
+
+if status == 'n':
+    server.listen()
+    while True:
+        conn, addr = server.accept()
+        thread = threading.Thread(target=client_handler_recv, args=[conn, addr, status])
+        thread.start()
+        print(f'[ACTIVE CONNECTIONS] {threading.activeCount() - 1}')
+
+# Main model parameters
+model_name          = input("Enter model file's name: ")
+model_path          = os.getcwd() + '/model/' + model_name
 num_of_clients      = int(input('Enter number of clients: '))
 num_of_epochs       = int(input("Enter number of epochs: "))
-num_of_batchsize    = int(input('Enter number of batchsize:'))
+num_of_batchsize    = int(input('Enter number of batchsize: '))
 optimizer           = input('Enter optimizer method: ')
 loss_func           = input('Enter loss function: ')
-
-print('''
-
-if you wanna send your custom dataset in .csv, .xlsx or .npz from server to clients enter "1"
-if you wanna use a dataset thats already exists in "dataset" folder in clients enter "2"
-if you wanna use a local tensorflow's dataset enter "3"
-
-''')
-
-dataset_status      = int(input('>> '))
-
-if dataset_status == 1:
-    dataset_path = input('Enter your dataset path: ')
-    dataset = Reader(dataset_path)
-    print('\n' * 10)
-
-elif dataset_status == 2:
-    print('\n' * 10)
-
-elif dataset_status == 3:
-    dataset = input("Enter dataset's name: ")
-    length_of_dataset = input("Enter dataset's length: ")
-
-else:
-    sys.exit('Try again and enter the correct answer')
+config_path         = os.getcwd() + '/config/config.sql'
 
 # Convert Numpy array into batches
 def array2batch(dataset, num_of_clients):
@@ -54,90 +49,80 @@ def array2batch(dataset, num_of_clients):
 
     return batches
 
-# Creating a function to save a sql file that's includes number of epochs, batch_size, optimizer method and loss function
-def config(num_of_epochs, num_of_batchsize, optimizer, loss_func):
-    if not os.path.exists('config'):
-        os.mkdir('config')
+print('''
 
-    # Removing the sqlite database file if it's exists and creating another
-    config_sqlite_path = os.getcwd() + '/config/config.sql'
-    if os.path.exists(config_sqlite_path):
-        os.remove(config_sqlite_path)
+if you wanna send your custom dataset in .csv, .xlsx or .npz from server to clients enter "1"
+if you wanna use a dataset thats already exists in "dataset" folder in clients enter "2"
+if you wanna use a local tensorflow's dataset enter "3"
 
-    # Connect to the database
-    con = sqlite3.connect(config_sqlite_path)
-    c = con.cursor()
-    print('[DATABASE CONNECTION] Connected to the sqlite database successfully')
+''')
 
-    # Creating config tables
-    query = '''create table config(
-        epochs INTEGER(20),
-        batch_size INTEGER(50),
-        optimizer TEXT(100),
-        loss_function TEXT(100)
-    )'''
+dataset_status = int(input('>> '))
 
-    try:
-        c.execute(query)
-        con.commit()
+if dataset_status == 1:
+    X, Y = Reader()
+    X_Batch, Y_Batch = array2batch(X, num_of_clients), array2batch(Y, num_of_clients)
+    dataset = [X_Batch, Y_Batch]
+    dataset_length = None 
+    print('\n' * 50)
 
-    except:
-        print('[ERROR] Something went wrong')
-        con.rollback()
-        con.close()
-        sys.exit()
+elif dataset_status == 2:
+    dataset_length = None 
+    print('\n' * 50)
 
-    # Inserting configs into table
-    query = f'''insert into config VALUES ({num_of_epochs}, {num_of_batchsize}, {optimizer}, {loss_func}'''
+elif dataset_status == 3:
+    dataset = input("Enter dataset's name: ")
+    dataset_length = input("Enter dataset's length: ")
+    input_output_order = input('Enter the order of input data (X) and output data (Y): ')
 
-    try:
-        c.execute(query)
-        con.commit()
+    # Validation
+    # if not input_output_order == 'XX':
+    #     sys.exit('Invalid')
 
-    except:
-        print('[ERROR] Something went wrong')
-        con.rollback()
-        con.close()
-        sys.exit()
+    # elif not input_output_order == 'XY':
+    #     sys.exit('Invalid')
 
-    print('[SUCCESSFUL] sqlite config file generated successfully')
+    print('\n' * 50)
 
-
-# Create the server TCP socket object
-server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-server.build((HOST, PORT))
-print('[*] Server builded...')
-
-# Create the client handler function
-def client_handler(conn, addr, send_dataset, use_exists_dataset, use_tensorflow_dataset):
-    print(f'[NEW CONNECTION] {addr} connected.')
-
-    # Create the handler loop
-    connected = True
-    while connected:
-        msg_length = int(conn.recv(BUFFER).decode(FORMAT))
-        msg = conn.recv(msg_length).decode(FORMAT)
-
-        if msg == DISCONNECT_MESSAGE:
-            connected = False 
-
-        print(f'{addr} {msg}')
-
-    # Close connection after disconnecting
-    conn.close()
+else:
+    sys.exit('Try again and enter the correct answer')
 
 # Create the main server function
-def main():
+def main(model_path, config_path, dataset_status, dataset, dataset_length):
     # Enabling our server to accept connections
     server.listen()
     print(f'[START] Server started listening on {HOST}:{PORT}')
 
+    # Set a index for batches
+    index = 0
+
     while True:
         conn, addr = server.accept()
-        thread = threading.Thread(target=client_handler, args=(conn, addr))
+
+        # Send dataset from server to the clients into batches
+        if dataset_status == 1:
+            thread = threading.Thread(target=client_handler_train, args=(conn, addr, model_path, config_path, dataset_status, dataset[index], status)) 
+
+        # Dataset has already existed on clients
+        elif dataset_status == 2:
+            thread = threading.Thread(target=client_handler_train, args=(conn, addr, model_path, config_path, dataset_status, dataset, status)) 
+
+        # We wanna use a dataset which is already has axisted on tensorflow api and we send the name of that dataset and batch of that
+        else:
+            # Calculating batch size for each client
+            BATCH_SIZE = int(int(dataset_length) / int(num_of_clients))
+            START = index * BATCH_SIZE
+            END = START + BATCH_SIZE
+            Batch = [START, END, input_output_order]
+            print(Batch)
+
+            thread = threading.Thread(target=client_handler_train, args=(conn, addr, model_path, config_path, dataset_status, dataset, status, Batch))
+
+        index += 1
+
         thread.start()
         print(f'[ACTIVE CONNECTIONS] {threading.activeCount() - 1}')
 
 # Generate the config sqlite file
 config(num_of_epochs, num_of_batchsize, optimizer, loss_func)
-main()
+main(model_path, config_path, dataset_status, dataset, dataset_length)
