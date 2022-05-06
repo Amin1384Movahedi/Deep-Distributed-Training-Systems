@@ -1,30 +1,74 @@
 import pandas as pd
-from dask import dataframe as dd
 import numpy as np
+import sys
 import os
 
-# Create our Dataset Reader function
-def Reader(path):
-    # Make sure the name of file we want to read is exists
-    if not os.path.exists(path):
-        print(f'{path} not found!')
-        return None
+# Create the Dataset Reader function
+def Reader():
+    # This function will extract all input data from dataset/X/
+    def Read_X():
+        # Make sure the name of file we wanna read, exists
+        path = os.getcwd() + '/dataset/X'
+        files = [f'{path}/{file}' for file in os.listdir(f'{path}/') if file.endswith('.csv') or file.endswith('.xlsx') or file.endswith('.npz')]
 
-    # Remove absolute path if there is
-    filename = os.path.basename(path)
+        if not os.path.exists(path):
+            sys.exit(f'{path} not found!')
 
-    # Check dataset for csv, excel and npz formats and read them
-    if filename.endswith('.csv'):
-        data = dd.read_csv(path)
+        if len(files) == 0:
+            sys.exit('There is no available dataset files!')
 
-    elif filename.endswith('.xlsx'):
-        data = pd.read_excel(path)
+        X = []
 
-    elif filename.endswith('.npz'):
-        data = np.load(path)
+        # Check dataset for csv, excel and npz formats and read them
+        for file in files:
+            if file.endswith('.csv'):
+                data = pd.read_csv(file).values 
+                X.append(data)
 
-    else:
-        print(f'{path} is unreadable!')
-        return None
+            elif file.endswith('.xlsx'):
+                data = pd.read_excel(file).values 
+                X.append(data)
 
-    return data
+            elif file.endswith('.npz'):
+                data = np.load(file)
+                X.append(data)
+
+            else:
+                sys.exit(f'{file} is unreadable!')
+
+        return X
+
+    # This function will extract all output data from dataset/Y/
+    def Read_Y():
+        # Make sure the name of file we wanna read, exists
+        path = os.getcwd() + '/dataset/Y'
+        files = [f'{path}/{file}' for file in os.listdir(f'{path}/') if file.endswith('.csv') or file.endswith('.xlsx') or file.endswith('.npz')]
+
+        if not os.path.exists(path):
+            sys.exit(f'{path} not found!')
+
+        if len(files) == 0:
+            sys.exit('There is no available dataset files!')
+
+        Y = []
+
+        # Check dataset for csv, excel and npz formats and read them
+        for file in files:
+            if file.endswith('.csv'):
+                data = pd.read_csv(file).values 
+                Y.append(data)
+
+            elif file.endswith('.xlsx'):
+                data = pd.read_excel(file).values 
+                Y.append(data)
+
+            elif file.endswith('.npz'):
+                data = np.load(file)
+                Y.append(data)
+
+            else:
+                sys.exit(f'{file} is unreadable!')
+
+        return Y 
+
+    return Read_X(), Read_Y()
