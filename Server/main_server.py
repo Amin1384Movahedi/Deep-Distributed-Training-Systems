@@ -1,3 +1,10 @@
+"""
+Created on 2022-05-07
+
+Author: Mohammad Amin Movahedi Moghadam
+Email: antonio1384minkowski@zohomail.eu
+"""
+
 import socket 
 import sys 
 import os 

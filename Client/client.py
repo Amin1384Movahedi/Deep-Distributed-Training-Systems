@@ -1,3 +1,10 @@
+"""
+Created on 2022-05-07
+
+Author: Mohammad Amin Movahedi Moghadam
+Email: antonio1384minkowski@zohomail.eu
+"""
+
 import socket 
 from DataSet_Reader.DataReader import Reader
 import random
