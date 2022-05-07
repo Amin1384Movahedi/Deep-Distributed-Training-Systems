@@ -1,3 +1,5 @@
+<h2><i>Deep Distributed System Training</i></h2>
+
 The purpose of this program is to speed up the learning of the deep learning model and prevent the system from crashing.<br>
 This program speeds up training by dividing a data set between multiple clients.
 Each client is responsible for teaching the deep learning model with only the part of the data set that is specified for it, not the entire data set.<br>
