@@ -1,4 +1,5 @@
 import tensorflow as tf
+from sklearn.model_selection import KFold
 import numpy as np
 import matplotlib.pyplot as plt
 import socket
@@ -7,10 +8,10 @@ from config_loader.config_loader import load
 
 # Create the history logger function
 # This function plot the network_history object and save it in .png format in log/ folder
-def train_history_logger(network_history, log_path):
+def train_history_logger(network_history, fold_no, log_path):
+    # Extracting losses and accuracy from history
     history = network_history.history
 
-    # Extracting losses and accuracy from history
     losses = history['loss']
     validation_loss = history['val_loss']
     accuracies = history['accuracy']
@@ -24,7 +25,7 @@ def train_history_logger(network_history, log_path):
     plt.plot(losses)
     plt.plot(validation_loss)
     plt.legend(['loss', 'validation_loss'])
-    plt.savefig(f'{log_path}/history_of_losses.png')
+    plt.savefig(f'{log_path}/history_of_losses({fold_no}).png')
 
     # Plot accuracy and validation accuracy per each epochs and saving the figure in log folder
     plt.figure()
@@ -34,7 +35,7 @@ def train_history_logger(network_history, log_path):
     plt.plot(accuracies)
     plt.plot(validation_accuracies)
     plt.legend(['accuracy', 'validation_accuracy'])
-    plt.savefig(f'{log_path}//history_of_accuracies.png')
+    plt.savefig(f'{log_path}//history_of_accuracies({fold_no}).png')
 
 # Create our trainer
 def train(X_train, Y_train, X_test, Y_test):
@@ -52,29 +53,63 @@ def train(X_train, Y_train, X_test, Y_test):
 
         # Extract train parameters
         num_epochs, batch_size, optimizer, loss_func = load()
-
-        # Create our callbacks
-        model_checkpoint = tf.keras.callbacks.ModelCheckpoint(f'{log_path}/{socket.gethostname()}_ModelWeight.h5')
-        logger = tf.keras.callbacks.CSVLogger(f'{log_path}/{socket.gethostname()}_ModelTrainingLog.log')
-
-        callbacks = [model_checkpoint, logger]
-
-        # Load the model
-        model = tf.keras.models.load_model(model_path)
-
-        # Compile the model
-        model.compile(optimizer=optimizer, loss=loss_func, metrics=['accuracy'])
         
-        # Start training
-        network_history = model.fit(X_train, Y_train,
-                                    epochs=num_epochs,
-                                    batch_size=batch_size,
-                                    verbose=1,
-                                    callbacks=callbacks,
-                                    validation_data=(X_test, Y_test))
+        # Define number of folds
+        num_folds = 10
 
-        # Plot newwork_history
-        train_history_logger(network_history, log_path)
+        # Define per-fold score containers
+        accuracy_per_fold = []
+        loss_per_fold = []
+
+
+        # Define the K-fold Cross Validator
+        kfold = KFold(n_splits=num_folds, shuffle=True)
+
+        # Merge inputs and targets
+        X = np.concatenate((X_train, X_test), axis=0)
+        Y = np.concatenate((Y_train, Y_test), axis=0)
+
+        # K-fold Cross Validation model evaluation
+        fold_no = 1
+        for train, test in KFold.split(X, Y):
+            # Load the model
+            model = tf.keras.models.load_model(model_path)
+
+            # Compile the model
+            model.compile(optimizer=optimizer, loss=loss_func, metrics=['accuracy'])
+
+            # Create the callbacks
+            model_checkpoint = tf.keras.callbacks.ModelCheckpoint(f'{log_path}/{socket.gethostname()}_ModelWeight({fold_no}).h5', 
+                                                                    monitor='val_accuracy', verbose=1, save_best_only=True, mode='max')
+            logger = tf.keras.callbacks.CSVLogger(f'{log_path}/{socket.gethostname()}_ModelTrainingLog.log')
+
+            callbacks = [model_checkpoint, logger]
+
+            network_history = model.fit(X[train], Y[test],
+                                        epochs=num_epochs,
+                                        batch_size=batch_size,
+                                        shufle=True,
+                                        verbose=1,
+                                        callbacks=callbacks,
+                                        validation_data=(X_test, Y_test))
+
+            # Plot newwork_history
+            train_history_logger(network_history, fold_no, log_path)
+
+            # Generate generalization metrics
+            scores = model.evaluate(X[test], Y[test], verbose=0)
+            print(f'Score for fold {fold_no}: {model.metrics_names[0]} of {scores[0]}; {model.metrics_names[1]} of {scores[1]*100}%')
+            accuracy_per_fold.append(scores[1] * 100)
+            loss_per_fold.append(scores[0])
+
+            # Increase fold number
+            fold_no = fold_no + 1
+
+        with open(f'{log_path}/accuracy_per_fold.log', 'w') as f:
+            f.write(str(accuracy_per_fold))
+
+        with open(f'{log_path}/loss_per_fold.log', 'w') as f:
+            f.write(str(loss_per_fold))
 
     except Exception as e:
         with open(f'{log_path}/training_exception.log', 'w') as f:
