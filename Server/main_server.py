@@ -82,13 +82,6 @@ elif dataset_status == 3:
     dataset_length = input("Enter dataset's length: ")
     input_output_order = input('Enter the order of input data (X) and output data (Y): ')
 
-    # Validation
-    # if not input_output_order == 'XX':
-    #     sys.exit('Invalid')
-
-    # elif not input_output_order == 'XY':
-    #     sys.exit('Invalid')
-
     print('\n' * 50)
 
 else:
@@ -104,6 +97,10 @@ def main(model_path, config_path, dataset_status, dataset, dataset_length):
     index = 0
 
     while True:
+        # Check if all of clients connected to the server and received the model and dataset, shutting down the server
+        if index == num_of_clients:
+            sys.exit('[FINISH] Model and dataset broadcasting was finished')
+
         conn, addr = server.accept()
 
         # Send dataset from server to the clients into batches
