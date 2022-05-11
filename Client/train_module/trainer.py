@@ -69,14 +69,17 @@ def train(X_train, Y_train, X_test, Y_test):
         X = np.concatenate((X_train, X_test), axis=0)
         Y = np.concatenate((Y_train, Y_test), axis=0)
 
+        # Load the model
+        origin_model = tf.keras.models.load_model(model_path)
+
+        # Compile the model
+        origin_model.compile(optimizer=optimizer, loss=loss_func, metrics=['accuracy'])
+
         # K-fold Cross Validation model evaluation
         fold_no = 1
         for train, test in KFold.split(X, Y):
-            # Load the model
-            model = tf.keras.models.load_model(model_path)
-
-            # Compile the model
-            model.compile(optimizer=optimizer, loss=loss_func, metrics=['accuracy'])
+            # Make a copy from origin model
+            model = origin_model
 
             # Create the callbacks
             model_checkpoint = tf.keras.callbacks.ModelCheckpoint(f'{log_path}/{socket.gethostname()}_ModelWeight({fold_no}).h5', 
@@ -101,6 +104,9 @@ def train(X_train, Y_train, X_test, Y_test):
             print(f'Score for fold {fold_no}: {model.metrics_names[0]} of {scores[0]}; {model.metrics_names[1]} of {scores[1]*100}%')
             accuracy_per_fold.append(scores[1] * 100)
             loss_per_fold.append(scores[0])
+
+            # Clear the tensorflow session
+            tf.keras.backend.clear_session()
 
             # Increase fold number
             fold_no = fold_no + 1
