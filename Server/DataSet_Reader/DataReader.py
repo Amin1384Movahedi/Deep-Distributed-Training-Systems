@@ -2,6 +2,7 @@ import pandas as pd
 import numpy as np
 import sys
 import os
+import random
 
 # Create the Dataset Reader function
 def Reader():
@@ -36,7 +37,7 @@ def Reader():
             else:
                 sys.exit(f'{file} is unreadable!')
 
-        return X
+        return random.shuffle(X) 
 
     # This function will extract all output data from dataset/Y/
     def Read_Y():
@@ -69,6 +70,6 @@ def Reader():
             else:
                 sys.exit(f'{file} is unreadable!')
 
-        return Y 
+        return random.shuffle(Y)  
 
     return Read_X(), Read_Y()
