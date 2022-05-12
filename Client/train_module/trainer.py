@@ -82,7 +82,7 @@ def train(X_train, Y_train, X_test, Y_test):
             model = origin_model
 
             # Create the callbacks
-            model_checkpoint = tf.keras.callbacks.ModelCheckpoint(f'{log_path}/{socket.gethostname()}_ModelWeight({fold_no}).h5', 
+            model_checkpoint = tf.keras.callbacks.ModelCheckpoint(f'{model_path}/{socket.gethostname()}_ModelWeight({fold_no}).h5', 
                                                                     monitor='val_accuracy', verbose=1, save_best_only=True, mode='max')
             logger = tf.keras.callbacks.CSVLogger(f'{log_path}/{socket.gethostname()}_ModelTrainingLog.log')
 
