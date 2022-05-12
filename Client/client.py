@@ -13,7 +13,7 @@ import tensorflow as tf
 from sklearn.model_selection import train_test_split
 from FTP_Client.FTP import * 
 import pickle
-from zipper.zipper import zip_log
+from zipper.zipper import zip_log, zip_model
 
 # Initialize main client variables
 BUFFER    = 4096 
@@ -107,12 +107,13 @@ if status == 'Y':
             train(X_train[START:END], Y_train[START:END], X_test[START:END], Y_test[START:END]) 
 
 else:
-    # Zipping the log folder
+    # Zipping the log and model folder
     zip_log()
+    zip_model()
     
     # Initializing log path and model path
     log_path = f'{os.getcwd()}/{socket.gethostname()}_log.zip'
-    trained_model_path = f'{os.getcwd()}/model/{socket.gethostname()}.h5'
+    trained_model_path = f'{os.getcwd()}/{socket.gethostname()}_model.zip'
 
     # Waiting for "gettrained_model" command and Sending trained model 
     cmd = client_socket.recv(30).decode(FORMAT)
