@@ -64,7 +64,7 @@ def FTP_Receiver(conn):
         os.mkdir('pre_trained_models')
 
     # Separating save path by formates
-    if filename.endswith('.h5'):
+    if filename.endswith('_model.zip'):
         save_path = f'{pre_trained_path}/{filename}'
 
     else:
