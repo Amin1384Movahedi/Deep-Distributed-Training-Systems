@@ -19,24 +19,74 @@ from Client_multihandler_receiver.multihandler_receiver import client_handler_re
 BUFFER              = 4096
 FORMAT              = 'utf-8'
 DISCONNECT_MESSAGE  = '!DISCONNECT'
+REFUSED_MESSAGE     = '!Connection_Refused'
+ACCEPTED_MESSAGE    = '!Connection_Accepted'
 HOST                = input('Enter Server IP: ')
 PORT                = int(input('Enter Server Port: '))
 status              = input('Do you wanna start training? <Y/n>: ')
+passphrase          = input('Enter a passphrase: ')
 
 # Create the server TCP socket object and bind that
 server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 server.bind((HOST, PORT))
 print('[*] Server builded...')
 
+client_connections = {}
+connected_clients  = []
+
+# Define the Client Authorization function (All of clients have to send the correct passphrase and if a client send a invalid passphrase for 3 times, 
+# Can no longer reconnect to the server)
+def Passphrase_authorization(conn, addr, passphrase):
+    # Sending "get_passphrase" command and waiting for receiving the client's entered passphrase
+    conn.sendall('get_passphrase'.encode(FORMAT))
+    received_passphrase = conn.recv(50).decode(FORMAT)
+
+    if not addr in client_connections:
+        client_connections[addr] = 1
+
+    elif client_connections[addr] >= 3:
+        conn.sendall(REFUSED_MESSAGE.encode(FORMAT))
+        conn.close()
+
+        return False
+
+    if received_passphrase == passphrase:
+        conn.sendall(ACCEPTED_MESSAGE.encode(FORMAT))
+
+        return True 
+
+    else:
+        conn.sendall(REFUSED_MESSAGE.encode(FORMAT))
+        client_connections[addr] += 1
+        conn.close()
+
+        return False
+
+# Each of client can receive the model and dataset just for one time
+def Duplicate_connection_authorization(conn, addr):
+    if addr in connected_clients:
+        conn.sendall(REFUSED_MESSAGE.encode(FORMAT))
+
+        return False 
+
+    conn.sendall(ACCEPTED_MESSAGE.encode(FORMAT))
+    client_connections.append(addr)
+
+    return True
+
 if status == 'n':
     server.listen()
     while True:
         conn, addr = server.accept()
-        thread = threading.Thread(target=client_handler_recv, args=[conn, addr, status])
-        thread.start()
-        print(f'[ACTIVE CONNECTIONS] {threading.activeCount() - 1}')
+        first_condition = Passphrase_authorization(conn, addr, passphrase)
+        second_condition = Duplicate_connection_authorization(conn, addr)
 
-# Main model parameters
+        if first_condition and second_condition:
+            thread = threading.Thread(target=client_handler_recv, args=[conn, addr, status])
+            thread.start()
+            print(f'[ACTIVE CONNECTIONS] {threading.activeCount() - 1}')
+
+# Main model training parameters
 model_name          = input("Enter model file's name: ")
 model_path          = os.getcwd() + '/model/' + model_name
 num_of_clients      = int(input('Enter number of clients: '))
@@ -102,30 +152,33 @@ def main(model_path, config_path, dataset_status, dataset, dataset_length):
             sys.exit('[FINISH] Model and dataset broadcasting was finished')
 
         conn, addr = server.accept()
+        first_condition = Passphrase_authorization(conn, addr, passphrase)
+        second_condition = Duplicate_connection_authorization(conn, addr)
 
-        # Send dataset from server to the clients into batches
-        if dataset_status == 1:
-            thread = threading.Thread(target=client_handler_train, args=(conn, addr, model_path, config_path, dataset_status, dataset[index], status)) 
+        if first_condition and second_condition:
+            # Send dataset from server to the clients into batches
+            if dataset_status == 1:
+                thread = threading.Thread(target=client_handler_train, args=(conn, addr, model_path, config_path, dataset_status, dataset[index], status)) 
 
-        # Dataset has already existed on clients
-        elif dataset_status == 2:
-            thread = threading.Thread(target=client_handler_train, args=(conn, addr, model_path, config_path, dataset_status, dataset, status)) 
+            # Dataset has already existed on clients
+            elif dataset_status == 2:
+                thread = threading.Thread(target=client_handler_train, args=(conn, addr, model_path, config_path, dataset_status, dataset, status)) 
 
-        # We wanna use a dataset which is already has axisted on tensorflow api and we send the name of that dataset and batch of that
-        else:
-            # Calculating batch size for each client
-            BATCH_SIZE = int(int(dataset_length) / int(num_of_clients))
-            START = index * BATCH_SIZE
-            END = START + BATCH_SIZE
-            Batch = [START, END, input_output_order]
-            print(Batch)
+            # We wanna use a dataset which is already has axisted on tensorflow api and we send the name of that dataset and batch of that
+            else:
+                # Calculating batch size for each client
+                BATCH_SIZE = int(int(dataset_length) / int(num_of_clients))
+                START = index * BATCH_SIZE
+                END = START + BATCH_SIZE
+                Batch = [START, END, input_output_order]
+                print(Batch)
 
-            thread = threading.Thread(target=client_handler_train, args=(conn, addr, model_path, config_path, dataset_status, dataset, status, Batch))
+                thread = threading.Thread(target=client_handler_train, args=(conn, addr, model_path, config_path, dataset_status, dataset, status, Batch))
 
-        index += 1
+            index += 1
 
-        thread.start()
-        print(f'[ACTIVE CONNECTIONS] {threading.activeCount() - 1}')
+            thread.start()
+            print(f'[ACTIVE CONNECTIONS] {threading.activeCount() - 1}')
 
 # Generate the config sqlite file
 config(num_of_epochs, num_of_batchsize, optimizer, loss_func)
