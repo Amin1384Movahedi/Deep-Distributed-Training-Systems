@@ -14,39 +14,73 @@ from sklearn.model_selection import train_test_split
 from FTP_Client.FTP import * 
 import pickle
 from zipper.zipper import zip_log, zip_model
+import sys
 
 # Initialize main client variables
-BUFFER    = 4096 
-FORMAT    = 'utf-8'
-HOST      = input('Enter the server ip: ')
-PORT      = int(input('Enter the server port: '))
+BUFFER              = 4096 
+FORMAT              = 'utf-8'
+HOST                = input('Enter the server ip: ')
+PORT                = int(input('Enter the server port: '))
 DISCONNECT_MESSAGE  = '!DISCONNECT'
+REFUSED_MESSAGE     = '!Connection_Refused'
+ACCEPTED_MESSAGE    = '!Connection_Accepted'
 
 # Build the client socket object
 client_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 
 # Connect to the server
-print('[*] Connecting to the server...')
+print('\n[*] Connecting to the server...')
 client_socket.connect((HOST, PORT))
-print(f'[CONNECTED] Connection to the {HOST}:{PORT} wass successful')
+print(f'[CONNECTED] Connection to the {HOST}:{PORT} wass successful\n')
 
-# Receiving status and sending a response
+
+# Waiting for "get_passphrase" command and sending the entered passphrase
+# if the passphrase is correct, client can connect to the server and if client
+# entered the passphrase wrong, client will get disconnected, and if client
+# entered the passphrase wrong for 3 times, client cant connect to the server any more.
+print('Waiting for "get_passphrase" command.')
+cmd = client_socket.recv(50).decode(FORMAT)
+if cmd == 'get_passphrase':
+    passphrase = input("Enter server's passphrase: ").encode(FORMAT) 
+    client_socket.sendall(passphrase)
+
+print('\n\nWaiting for passphrase server authorization.')
+cmd = client_socket.recv(50).decode(FORMAT)
+if cmd == REFUSED_MESSAGE:
+    client_socket.close()
+    sys.exit('Passphrase is incorrect or you are banned from the server')
+
+# Waiting for accept or refuse message, if client connected to the server and received
+# the model and the dataset, client will receive refuse message, else client will
+# receive the accept message and start receiving the model and the dataset.
+print('Waiting for duplicated connection authorization.\n')
+cmd = client_socket.recv(50).decode(FORMAT)
+if cmd == REFUSED_MESSAGE:
+    client_socket.close()
+    sys.exit('You are connected to the server and received the model \nand the dataset already, you cant connect to the server \nand receive the model and the dataset any more.')
+
+# Sending "getstatus_code" request to the server, receiving status and sending a response
+print('Receiving the status code.')
+client_socket.sendall('getstatus_code'.encode(FORMAT))
 status = client_socket.recv(10).decode(FORMAT)
-client_socket.sendall('status code received!'.encode(FORMAT))
+client_socket.sendall(f'[{socket.gethostname()}] status code received!'.encode(FORMAT))
 
-if status == 'Y':
+if status == 'y':
     # Start receiving the model file and configs 
     FTP_Receiver(client_socket)
     FTP_Receiver(client_socket)
 
     # Receiving dataset status
+    print('Sending the "getdataset_status" request to the server.\n\n')
     client_socket.sendall('getdataset_status'.encode(FORMAT))
     dataset_status = int(client_socket.recv(32).decode(FORMAT))
 
+    print('Sending the "getdataset" request to the server.')
+    # Sending "getdataset" command for receiving the dataset
+    client_socket.sendall('getdataset'.encode(FORMAT))
+    
+    print('Start receiving the dataset from server.')
     if dataset_status == 1:
-        # Sending "getdataset" command for receiving the dataset
-        client_socket.sendall('getdataset'.encode(FORMAT))
-
         # Start Receiving X data (input data)
         X = FTP_Receiver(client_socket) 
 
@@ -63,9 +97,6 @@ if status == 'Y':
         train(X_train, Y_train, X_test, Y_test)
 
     elif dataset_status == 2:
-        # Sending "getdataset" command for receiving the dataset
-        client_socket.sendall('getdataset'.encode(FORMAT))
-
         client_dataset = client_socket.recv(25).decode(FORMAT)
 
         # Send disconnect command and disconnecting from server and start training
@@ -80,9 +111,6 @@ if status == 'Y':
         train(X_train, Y_train, X_test, Y_test)
 
     else: 
-        # Sending "getdataset" command for receiving the dataset
-        client_socket.sendall('getdataset'.encode(FORMAT))
-
         # Start receiving training dataset part and sending a done response
         dataset_size = pickle.loads(client_socket.recv(BUFFER))
         client_socket.sendall("Dataset batch received!".encode(FORMAT))
@@ -108,6 +136,7 @@ if status == 'Y':
 
 else:
     # Zipping the log and model folder
+    print('Zipping the log folder and pre trained models folder\n')
     zip_log()
     zip_model()
     
@@ -116,11 +145,15 @@ else:
     trained_model_path = f'{os.getcwd()}/{socket.gethostname()}_model.zip'
 
     # Waiting for "gettrained_model" command and Sending trained model 
+    print('Waiting for "gettrained_model" command.')
     cmd = client_socket.recv(30).decode(FORMAT)
     if cmd == 'gettrained_model':
+        print('Start sending the pre trained models in a zip file.\n')
         FTP_Sender(client_socket, trained_model_path)
 
     # Waiting for "getlog" command and Sending log
+    print('Waiting for "getlog" command.')
     cmd = client_socket.recv(30).decode(FORMAT)
     if cmd == 'getlog':
+        print('Start sending the logs in a zip file.\n')
         FTP_Sender(client_socket, log_path)

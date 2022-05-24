@@ -21,10 +21,14 @@ FORMAT              = 'utf-8'
 DISCONNECT_MESSAGE  = '!DISCONNECT'
 REFUSED_MESSAGE     = '!Connection_Refused'
 ACCEPTED_MESSAGE    = '!Connection_Accepted'
-HOST                = input('Enter Server IP: ')
-PORT                = int(input('Enter Server Port: '))
-status              = input('Do you wanna start training? <Y/n>: ')
-passphrase          = input('Enter a passphrase: ')
+# HOST                = input('Enter Server IP: ')
+# PORT                = int(input('Enter Server Port: '))
+# status              = input('Do you wanna start training? <Y/n>: ').lower()
+# passphrase          = input('Enter a passphrase: ')
+HOST                = '192.168.1.9'
+PORT                = 5003
+status              = 'Y'.lower()
+passphrase          = '123456'
 
 # Create the server TCP socket object and bind that
 server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -70,7 +74,7 @@ def Duplicate_connection_authorization(conn, addr):
         return False 
 
     conn.sendall(ACCEPTED_MESSAGE.encode(FORMAT))
-    client_connections.append(addr)
+    connected_clients.append(addr)
 
     return True
 
@@ -87,13 +91,21 @@ if status == 'n':
             print(f'[ACTIVE CONNECTIONS] {threading.activeCount() - 1}')
 
 # Main model training parameters
-model_name          = input("Enter model file's name: ")
+# model_name          = input("Enter model file's name: ")
+# model_path          = os.getcwd() + '/model/' + model_name
+# num_of_clients      = int(input('Enter number of clients: '))
+# num_of_epochs       = int(input("Enter number of epochs: "))
+# num_of_batchsize    = int(input('Enter number of batchsize: '))
+# optimizer           = input('Enter optimizer method: ')
+# loss_func           = input('Enter loss function: ')
+# config_path         = os.getcwd() + '/config/config.sql'
+model_name          = 'm.h5'
 model_path          = os.getcwd() + '/model/' + model_name
-num_of_clients      = int(input('Enter number of clients: '))
-num_of_epochs       = int(input("Enter number of epochs: "))
-num_of_batchsize    = int(input('Enter number of batchsize: '))
-optimizer           = input('Enter optimizer method: ')
-loss_func           = input('Enter loss function: ')
+num_of_clients      = 3
+num_of_epochs       = 3
+num_of_batchsize    = 5
+optimizer           = 'adam'
+loss_func           = 'test'
 config_path         = os.getcwd() + '/config/config.sql'
 
 # Convert Numpy array into batches
@@ -148,37 +160,38 @@ def main(model_path, config_path, dataset_status, dataset, dataset_length):
 
     while True:
         # Check if all of clients connected to the server and received the model and dataset, shutting down the server
-        if index == num_of_clients:
+        if index == (num_of_clients - 1):
             sys.exit('[FINISH] Model and dataset broadcasting was finished')
 
         conn, addr = server.accept()
         first_condition = Passphrase_authorization(conn, addr, passphrase)
-        second_condition = Duplicate_connection_authorization(conn, addr)
 
-        if first_condition and second_condition:
-            # Send dataset from server to the clients into batches
-            if dataset_status == 1:
-                thread = threading.Thread(target=client_handler_train, args=(conn, addr, model_path, config_path, dataset_status, dataset[index], status)) 
+        if first_condition:
+            second_condition = Duplicate_connection_authorization(conn, addr)
 
-            # Dataset has already existed on clients
-            elif dataset_status == 2:
-                thread = threading.Thread(target=client_handler_train, args=(conn, addr, model_path, config_path, dataset_status, dataset, status)) 
+            if first_condition and second_condition:
+                # Send dataset from server to the clients into batches
+                if dataset_status == 1:
+                    thread = threading.Thread(target=client_handler_train, args=(conn, addr, model_path, config_path, dataset_status, dataset[index], status)) 
 
-            # We wanna use a dataset which is already has axisted on tensorflow api and we send the name of that dataset and batch of that
-            else:
-                # Calculating batch size for each client
-                BATCH_SIZE = int(int(dataset_length) / int(num_of_clients))
-                START = index * BATCH_SIZE
-                END = START + BATCH_SIZE
-                Batch = [START, END, input_output_order]
-                print(Batch)
+                # Dataset has already existed on clients
+                elif dataset_status == 2:
+                    thread = threading.Thread(target=client_handler_train, args=(conn, addr, model_path, config_path, dataset_status, dataset, status)) 
 
-                thread = threading.Thread(target=client_handler_train, args=(conn, addr, model_path, config_path, dataset_status, dataset, status, Batch))
+                # We wanna use a dataset which is already has axisted on tensorflow api and we send the name of that dataset and batch of that
+                else:
+                    # Calculating batch size for each client
+                    BATCH_SIZE = int(int(dataset_length) / int(num_of_clients))
+                    START = index * BATCH_SIZE
+                    END = START + BATCH_SIZE
+                    Batch = [START, END, input_output_order]
 
-            index += 1
+                    thread = threading.Thread(target=client_handler_train, args=(conn, addr, model_path, config_path, dataset_status, dataset, status, Batch))
 
-            thread.start()
-            print(f'[ACTIVE CONNECTIONS] {threading.activeCount() - 1}')
+                index += 1
+
+                thread.start()
+                print(f'[ACTIVE CONNECTIONS] {threading.activeCount() - 1}')
 
 # Generate the config sqlite file
 config(num_of_epochs, num_of_batchsize, optimizer, loss_func)
