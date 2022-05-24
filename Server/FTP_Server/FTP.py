@@ -6,18 +6,22 @@ import os
 
 # Create the Sender function
 def FTP_Sender(conn, path, data=None):
-    print('Wating for command.')
+    print(f'\n\n================ File Transfer Sender Protocol ================\n')
+    print('Wating for command.\n')
 
     # Make sure the path of file we wanna send, exists
+    print(f'File path verification for {path}.')
     if not os.path.exists(path):
         return f'{path} Not found!'
 
     # Extract file name from file path
+    print("Extracting the file's name from path.\n")
     filename = os.path.basename(path)
 
     # Create the Sender loop
     while True:
         # Wait for command
+        print("Waiting for client's FTP requests.\n")
         cmd = conn.recv(32).decode('utf-8')
 
         # Sending the file's name
@@ -39,11 +43,13 @@ def FTP_Sender(conn, path, data=None):
 
         # Breaking the loop when file transmission is completed.
         if cmd == 'end':
-            print('"end" command received. Teminate.')
+            print('"end" command received. Teminate.\n\n')
             break
 
 # Create the Receiver function
 def FTP_Receiver(conn):
+    print(f'\n\n================ File Transfer Receiver Protocol ================\n')
+
     # Initializing pathes variables
     log_path = os.getcwd() + '/log'
     pre_trained_path = os.getcwd() + '/pre_trained_models'
@@ -54,14 +60,20 @@ def FTP_Receiver(conn):
     conn.sendall('getfilename'.encode('utf-8'))
     filename = conn.recv(1024).decode('utf-8')
 
-    print(f'============={filename}============')
+    print(f'File Name: {filename}\n')
 
     # Make sure the needed pathes are existing
+    print(f'path verification for {log_path} ...')
     if not os.path.exists(log_path):
+        print(f"{log_path} wasn't exsist, start creating a log folder.")
         os.mkdir('log')
+        print('Log folder created!\n')
 
+    print(f'path verification for {pre_trained_path} ...')
     if not os.path.exists(pre_trained_path):
+        print(f"{pre_trained_path} wasn't exsist, start creating a pre trained models folder.")
         os.mkdir('pre_trained_models')
+        print('pre trained models folder created!\n')
 
     # Separating save path by formates
     if filename.endswith('_model.zip'):
@@ -69,12 +81,11 @@ def FTP_Receiver(conn):
 
     else:
         save_path = f'{log_path}/{filename}'
-    
-    print(save_path)
 
     print('Filename: ' + filename)
 
     # Start receiving and writing file
+    print(f'Start receiving the {filename} file.')
     with open(save_path, 'wb') as f:
         while True:
             conn.sendall('getfile'.encode('utf-8'))
@@ -91,4 +102,4 @@ def FTP_Receiver(conn):
 
     # End of Receiving
     conn.sendall('end'.encode('utf-8'))
-    print('File received.')
+    print('File received.\n\n')

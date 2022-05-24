@@ -10,24 +10,32 @@ DISCONNECT_MESSAGE  = '!DISCONNECT'
 def client_handler_train(conn, addr, model_path, config_path, dataset_status, dataset, status, Batch=None):
     print(f'[NEW CONNECTION] {addr} connected.')
 
-    # Sending status and receiving response
-    conn.sendall(status.encode(FORMAT))
-    response = conn.recv(30).decode(FORMAT)
-    print(response)
+    # Waiting for "getstatus_code" request, sending status and receiving response
+    cmd = conn.recv(20).decode(FORMAT)
+    if cmd == 'getstatus_code':
+        print(f'Sending the status code to {addr} client.')
+        conn.sendall(status.encode(FORMAT))
+        response = conn.recv(30).decode(FORMAT)
+        print(f'{response}\n\n')
 
     # Start sending model and config files
     FTP_Sender(conn, model_path)
     FTP_Sender(conn, config_path)
 
     # Wait for "getdataset_status" command
+    print(f'Waiting for "getdataset_status" request from {addr}.')
     cmd = conn.recv(32).decode(FORMAT)
 
     # Send the dataset status
+    print('"getdataset_status" request was received, sending the dataset status.\n\n')
     if cmd == 'getdataset_status':
         conn.sendall(str(dataset_status).encode(FORMAT))
 
     # Waiting for "getdataset" command to send the dataset
+    print(f'Waiting for "getdataset" command from {addr}.')
     cmd = conn.recv(32).decode(FORMAT)
+
+    print(f'Start sending the dataset to the {addr} client.\n\n')
     if cmd == 'getdataset':
     
         if dataset_status == 1:
@@ -56,4 +64,5 @@ def client_handler_train(conn, addr, model_path, config_path, dataset_status, da
     # Waiting for DISCONNECT command
     cmd = conn.recv(32).decode(FORMAT)
     if cmd == DISCONNECT_MESSAGE:
+        print(f"[DISCONNECTED] {addr} received the model and dataset \nsuccessfuly and get disconnected.")
         conn.close()
