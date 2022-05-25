@@ -111,6 +111,11 @@ if status == 'y':
         train(X_train, Y_train, X_test, Y_test)
 
     else: 
+        # Check for log folder
+        log_path = os.getcwd() + '/log'
+        if not os.path.exists(log_path):
+            os.mkdir('log')
+
         # Start receiving training dataset part and sending a done response
         dataset_size = pickle.loads(client_socket.recv(BUFFER))
         client_socket.sendall("Dataset batch received!".encode(FORMAT))
@@ -123,9 +128,14 @@ if status == 'y':
         client_socket.sendall(DISCONNECT_MESSAGE.encode(FORMAT))
 
         # Loading dataset from tensorflow
-        dataset_loader_query = f"(X_train, Y_train), (X_test, Y_test) = tf.keras.datasets.{dataset_name}.load_data()"
-        exec(dataset_loader_query)
-        START, END, input_output_order = dataset_size[0], dataset_size[1], dataset_size[2]
+        try:
+            dataset_loader_query = f"(X_train, Y_train), (X_test, Y_test) = tf.keras.datasets.{dataset_name}.load_data()"
+            exec(dataset_loader_query)
+            START, END, input_output_order = dataset_size[0], dataset_size[1], dataset_size[2]
+
+        except Exception as e:
+            with open(f'{log_path}/training_exception.log', 'w') as f:
+                f.write(str(e))
 
         # Inizializing train function with different inputs and outputs and start training
         if input_output_order  == 'XX':
@@ -134,7 +144,7 @@ if status == 'y':
         else:
             train(X_train[START:END], Y_train[START:END], X_test[START:END], Y_test[START:END]) 
 
-else:
+elif status == 'n':
     # Zipping the log and model folder
     print('Zipping the log folder and pre trained models folder\n')
     zip_log()

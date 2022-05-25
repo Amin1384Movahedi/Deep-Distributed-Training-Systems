@@ -26,7 +26,7 @@ ACCEPTED_MESSAGE    = '!Connection_Accepted'
 # status              = input('Do you wanna start training? <Y/n>: ').lower()
 # passphrase          = input('Enter a passphrase: ')
 HOST                = '192.168.1.9'
-PORT                = 5003
+PORT                = 5004
 status              = 'Y'.lower()
 passphrase          = '123456'
 
@@ -41,12 +41,13 @@ connected_clients  = []
 # Define the Client Authorization function (All of clients have to send the correct passphrase and if a client send a invalid passphrase for 3 times, 
 # Can no longer reconnect to the server)
 def Passphrase_authorization(conn, addr, passphrase):
+    print(addr)
     # Sending "get_passphrase" command and waiting for receiving the client's entered passphrase
     conn.sendall('get_passphrase'.encode(FORMAT))
     received_passphrase = conn.recv(50).decode(FORMAT)
 
     if not addr in client_connections:
-        client_connections[addr] = 1
+        client_connections[addr] = 0
 
     elif client_connections[addr] >= 3:
         conn.sendall(REFUSED_MESSAGE.encode(FORMAT))
@@ -82,8 +83,8 @@ if status == 'n':
     server.listen()
     while True:
         conn, addr = server.accept()
-        first_condition = Passphrase_authorization(conn, addr, passphrase)
-        second_condition = Duplicate_connection_authorization(conn, addr)
+        first_condition = Passphrase_authorization(conn, addr[0], passphrase)
+        second_condition = Duplicate_connection_authorization(conn, addr[0])
 
         if first_condition and second_condition:
             thread = threading.Thread(target=client_handler_recv, args=[conn, addr, status])
@@ -164,10 +165,10 @@ def main(model_path, config_path, dataset_status, dataset, dataset_length):
             sys.exit('[FINISH] Model and dataset broadcasting was finished')
 
         conn, addr = server.accept()
-        first_condition = Passphrase_authorization(conn, addr, passphrase)
+        first_condition = Passphrase_authorization(conn, addr[0], passphrase)
 
         if first_condition:
-            second_condition = Duplicate_connection_authorization(conn, addr)
+            second_condition = Duplicate_connection_authorization(conn, addr[0])
 
             if first_condition and second_condition:
                 # Send dataset from server to the clients into batches
