@@ -1,4 +1,5 @@
 import os 
+import sys
 
 # This FTP module will send model file in .h5 format and config thats include number of epochs, 
 # batch_size, optimizer algorithm and loss function.
@@ -12,7 +13,7 @@ def FTP_Sender(conn, path, data=None):
     # Make sure the path of file we wanna send, exists
     print(f'File path verification for {path}.')
     if not os.path.exists(path):
-        return f'{path} Not found!'
+        sys.exit(f'{path} Not found!')
 
     # Extract file name from file path
     print("Extracting the file's name from path.\n")
