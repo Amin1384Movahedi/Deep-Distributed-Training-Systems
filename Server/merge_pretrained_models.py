@@ -26,7 +26,9 @@ for model in model_path:
 Output = tf.keras.layers.average(models)
 ensemble_model = tf.keras.models.Model(inputs=Input, outputs=Output)
 
+# Check the "ensembled_Model" directory, make one if it does not exist.
 if not os.path.exists('ensembled_model/'):
     os.mkdir('ensembled_model')
 
+# Save the ensembled model into "ensembled_model" directory.
 ensemble_model.save('ensembled_model/ensembled.h5')
