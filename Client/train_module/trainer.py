@@ -5,6 +5,7 @@ import matplotlib.pyplot as plt
 import socket
 import os
 from config_loader.config_loader import load
+import sys
 
 # Create the history logger function
 # This function plot the network_history object and save it in .png format in log/ folder
@@ -40,11 +41,11 @@ def train_history_logger(network_history, fold_no, log_path):
 # Create our trainer
 def train(X_train, Y_train, X_test, Y_test):
     try:
-        model_path = f'{os.getcwd()}/model/{socket.gethostname()}.h5'
+        model_path = f'{os.getcwd()}/model'
 
         # Make sure the name of model's file we want to train is exists
         if not os.path.exists(model_path):
-            return f'{socket.gethostname()}.h5 is not exist!'
+            sys.exit(f'{socket.gethostname()}.h5 is not exist!') 
 
         # Logs and Callbacks
         log_path = os.getcwd() + '/log'
@@ -70,7 +71,7 @@ def train(X_train, Y_train, X_test, Y_test):
         Y = np.concatenate((Y_train, Y_test), axis=0)
 
         # Load the model
-        origin_model = tf.keras.models.load_model(model_path)
+        origin_model = tf.keras.models.load_model(f'{model_path}/{socket.gethostname()}.h5')
 
         # Compile the model
         origin_model.compile(optimizer=optimizer, loss=loss_func, metrics=['accuracy'])
@@ -88,13 +89,13 @@ def train(X_train, Y_train, X_test, Y_test):
 
             callbacks = [model_checkpoint, logger]
 
-            network_history = model.fit(X[train], Y[test],
+            network_history = model.fit(X[train], Y[train],
                                         epochs=num_epochs,
                                         batch_size=batch_size,
                                         shufle=True,
                                         verbose=1,
                                         callbacks=callbacks,
-                                        validation_data=(X_test, Y_test))
+                                        validation_data=(X[test], Y[test]))
 
             # Plot newwork_history
             train_history_logger(network_history, fold_no, log_path)
