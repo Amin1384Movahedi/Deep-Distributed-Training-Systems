@@ -23,16 +23,19 @@ def Reader():
         # Check dataset for csv, excel and npz formats and read them
         for file in files:
             if file.endswith('.csv'):
-                data = pd.read_csv(file).values 
-                X.append(data)
+                data = pd.read_csv(file, chunksize=100000)
+
+                for chunk in data:
+                    X.append(chunk.values)
 
             elif file.endswith('.xlsx'):
-                data = pd.read_excel(file).values 
-                X.append(data)
+                data = pd.read_excel(file) 
+                
+                for chunk in data:
+                    X.append(chunk.values)
 
             elif file.endswith('.npz'):
                 data = np.load(file)
-                X.append(data)
 
             else:
                 sys.exit(f'{file} is unreadable!')
@@ -56,12 +59,16 @@ def Reader():
         # Check dataset for csv, excel and npz formats and read them
         for file in files:
             if file.endswith('.csv'):
-                data = pd.read_csv(file).values 
-                Y.append(data)
+                data = pd.read_csv(file, chunksize=100000)
+                
+                for chunk in data:
+                    Y.append(chunk.values)
 
             elif file.endswith('.xlsx'):
-                data = pd.read_excel(file).values 
-                Y.append(data)
+                data = pd.read_excel(file, chunksize=100000)
+                
+                for chunk in data:
+                    Y.append(chunk.values)
 
             elif file.endswith('.npz'):
                 data = np.load(file)
