@@ -9,6 +9,8 @@ import socket
 import sys 
 import os 
 import threading
+
+from sklearn.preprocessing import Normalizer
 from FTP_Server.FTP import *
 from DataSet_Reader.DataReader import Reader
 from config_generator.config_gen import config
@@ -29,7 +31,7 @@ passphrase          = input('Enter a passphrase: ')
 # Create the server TCP socket object and bind that
 server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 server.bind((HOST, PORT))
-print('[*] Server builded...')
+print('\n[*] Server builded...\n')
 
 client_connections = {}
 connected_clients  = []
@@ -100,6 +102,24 @@ num_of_epochs       = int(input("Enter number of epochs: "))
 num_of_batchsize    = int(input('Enter number of batchsize: '))
 optimizer           = input('Enter optimizer method: ')
 loss_func           = input('Enter loss function: ')
+
+print('\n'*20)
+print('You can use these three normalizer to normalize your input data:')
+print('''     
+     1) Simple Feature Scaling Normalizer
+     2) Min-Max Normalizer
+     3) Z-Score Normalizer
+     
+and if you dont wanna use any normalizer, then enter "0"
+''')
+
+Normalizer          = input('Enter your normalizer number: ')
+print('\n'*20)
+print('''
+If you wanna use K-fold Cross Validation method to train your deep learning model, Enter "1"
+other vise, Enter "2"\n''')
+
+train_method        = input('>> ')
 config_path         = os.getcwd() + '/config/config.sql'
 
 # Convert Numpy array into batches
@@ -188,5 +208,5 @@ def main(model_path, config_path, dataset_status, dataset, dataset_length):
                 print(f'[ACTIVE CONNECTIONS] {threading.activeCount() - 1}')
 
 # Generate the config sqlite file
-config(num_of_epochs, num_of_batchsize, optimizer, loss_func)
+config(num_of_epochs, num_of_batchsize, optimizer, loss_func, Normalizer, train_method)
 main(model_path, config_path, dataset_status, dataset, dataset_length)

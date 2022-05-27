@@ -8,7 +8,7 @@ Email: antonio1384minkowski@zohomail.eu
 import socket 
 from DataSet_Reader.DataReader import Reader
 import random
-from train_module.trainer import train
+from train_module import k_fold_trainer, norm_trainer
 import tensorflow as tf 
 from sklearn.model_selection import train_test_split
 from FTP_Client.FTP import * 
@@ -94,7 +94,7 @@ if status == 'y':
         X_train, Y_train, X_test, Y_test = train_test_split(X, Y, test_size=0.3, random_state=random.randint(20, 60))
 
         # Start training by received data
-        train(X_train, Y_train, X_test, Y_test)
+        k_fold_trainer.train(X_train, Y_train, X_test, Y_test)
 
     elif dataset_status == 2:
         client_dataset = client_socket.recv(25).decode(FORMAT)
@@ -108,7 +108,7 @@ if status == 'y':
         # Split the data into train and test
         X_train, Y_train, X_test, Y_test = train_test_split(X, Y, test_size=0.3, random_state=random.randint(20, 60))
 
-        train(X_train, Y_train, X_test, Y_test)
+        k_fold_trainer.train(X_train, Y_train, X_test, Y_test)
 
     else: 
         # Check for log folder
@@ -139,10 +139,10 @@ if status == 'y':
 
         # Inizializing train function with different inputs and outputs and start training
         if input_output_order  == 'XX':
-            train(X_train[START:END], X_train[START:END], X_test[START:END], X_test[START:END]) 
+            k_fold_trainer.train(X_train[START:END], X_train[START:END], X_test[START:END], X_test[START:END]) 
 
         else:
-            train(X_train[START:END], Y_train[START:END], X_test[START:END], Y_test[START:END]) 
+            k_fold_trainer.train(X_train[START:END], Y_train[START:END], X_test[START:END], Y_test[START:END]) 
 
 elif status == 'n':
     # Zipping the log and model folder

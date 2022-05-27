@@ -3,7 +3,7 @@ import sys
 import os 
 
 # Creating a function to save a sql file that's includes number of epochs, batch_size, optimizer method and loss function
-def config(num_of_epochs, num_of_batchsize, optimizer, loss_func):
+def config(num_of_epochs, num_of_batchsize, optimizer, loss_func, normalizer, train_method):
     if not os.path.exists('config'):
         os.mkdir('config')
 
@@ -22,7 +22,9 @@ def config(num_of_epochs, num_of_batchsize, optimizer, loss_func):
         epochs INTEGER(20),
         batch_size INTEGER(50),
         optimizer TEXT(100),
-        loss_function TEXT(100)
+        loss_function TEXT(100),
+        normalizer INTEGER(10),
+        train_method INTEGER(20)
     )'''
 
     try:
@@ -36,7 +38,7 @@ def config(num_of_epochs, num_of_batchsize, optimizer, loss_func):
         sys.exit()
 
     # Inserting configs into the table
-    query = f'''insert into config VALUES ({num_of_epochs}, {num_of_batchsize}, "{optimizer}", "{loss_func}")'''
+    query = f'''insert into config VALUES ({num_of_epochs}, {num_of_batchsize}, "{optimizer}", "{loss_func}", {normalizer}, {train_method})'''
 
     try:
         c.execute(query)
