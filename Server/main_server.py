@@ -96,6 +96,9 @@ if len(model_files) > 1:
     model_name = input('Enter the model name: ')
     model_path = os.getcwd() + '/model/' + model_name
 
+elif len(model_files) == 0:
+    sys.exit('There is not any deep learning model in "model" directory')
+
 model_path          = os.getcwd() + '/model/' + model_files[0]
 num_of_clients      = int(input('Enter number of clients: '))
 num_of_epochs       = int(input("Enter number of epochs: "))
