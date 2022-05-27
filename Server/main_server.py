@@ -21,14 +21,10 @@ FORMAT              = 'utf-8'
 DISCONNECT_MESSAGE  = '!DISCONNECT'
 REFUSED_MESSAGE     = '!Connection_Refused'
 ACCEPTED_MESSAGE    = '!Connection_Accepted'
-# HOST                = input('Enter Server IP: ')
-# PORT                = int(input('Enter Server Port: '))
-# status              = input('Do you wanna start training? <Y/n>: ').lower()
-# passphrase          = input('Enter a passphrase: ')
-HOST                = '192.168.1.9'
-PORT                = 5004
-status              = 'Y'.lower()
-passphrase          = '123456'
+HOST                = input('Enter Server IP: ')
+PORT                = int(input('Enter Server Port: '))
+status              = input('Do you wanna start training? <Y/n>: ').lower()
+passphrase          = input('Enter a passphrase: ')
 
 # Create the server TCP socket object and bind that
 server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -92,21 +88,18 @@ if status == 'n':
             print(f'[ACTIVE CONNECTIONS] {threading.activeCount() - 1}')
 
 # Main model training parameters
-# model_name          = input("Enter model file's name: ")
-# model_path          = os.getcwd() + '/model/' + model_name
-# num_of_clients      = int(input('Enter number of clients: '))
-# num_of_epochs       = int(input("Enter number of epochs: "))
-# num_of_batchsize    = int(input('Enter number of batchsize: '))
-# optimizer           = input('Enter optimizer method: ')
-# loss_func           = input('Enter loss function: ')
-# config_path         = os.getcwd() + '/config/config.sql'
-model_name          = 'm.h5'
-model_path          = os.getcwd() + '/model/' + model_name
-num_of_clients      = 3
-num_of_epochs       = 3
-num_of_batchsize    = 5
-optimizer           = 'adam'
-loss_func           = 'test'
+model_files         = [model for model in os.listdir('model/') if model.endswith('.h5')]
+if len(model_files) > 1:
+    print(f'{model_files}\n')
+    model_name = input('Enter the model name: ')
+    model_path = os.getcwd() + '/model/' + model_name
+
+model_path          = os.getcwd() + '/model/' + model_files[0]
+num_of_clients      = int(input('Enter number of clients: '))
+num_of_epochs       = int(input("Enter number of epochs: "))
+num_of_batchsize    = int(input('Enter number of batchsize: '))
+optimizer           = input('Enter optimizer method: ')
+loss_func           = input('Enter loss function: ')
 config_path         = os.getcwd() + '/config/config.sql'
 
 # Convert Numpy array into batches
