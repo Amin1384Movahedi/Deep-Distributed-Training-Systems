@@ -4,8 +4,7 @@ import os
 from config_loader.config_loader import load
 import sys
 from normalizer import normalize
-from k_fold_trainer import KFold_train
-from norm_trainer import norm_train
+from training_methods import k_fold_trainer, norm_trainer
 
 # Create the history logger function
 # This function plot the network_history object and save it in .png format in log/ folder
@@ -74,10 +73,10 @@ def train(X_train, Y_train, X_test, Y_test):
             Y_test = normalize.Z_Score(Y_test) 
 
         if train_method == 1:
-            KFold_train(X_train, Y_train, X_test, Y_test, num_epochs, batch_size, optimizer, loss_func, model_path, log_path) 
+            k_fold_trainer.KFold_train(X_train, Y_train, X_test, Y_test, num_epochs, batch_size, optimizer, loss_func, model_path, log_path) 
 
         elif train_method == 2:
-            norm_train(X_train, Y_train, X_test, Y_test, num_epochs, batch_size, optimizer, loss_func, model_path, log_path)
+            norm_trainer.norm_train(X_train, Y_train, X_test, Y_test, num_epochs, batch_size, optimizer, loss_func, model_path, log_path)
 
     except Exception as e:
         with open(f'{log_path}/training_exception.log', 'w') as f:
