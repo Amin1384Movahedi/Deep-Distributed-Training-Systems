@@ -40,7 +40,8 @@ def Reader():
             else:
                 sys.exit(f'{file} is unreadable!')
 
-        return random.shuffle(X) 
+        random.shuffle(X)
+        return X 
 
     # This function will extract all output data from dataset/Y/
     def Read_Y():
@@ -77,6 +78,7 @@ def Reader():
             else:
                 sys.exit(f'{file} is unreadable!')
 
-        return random.shuffle(Y)  
+        random.shuffle(Y)
+        return Y
 
     return Read_X(), Read_Y()
