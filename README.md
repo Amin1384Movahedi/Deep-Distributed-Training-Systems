@@ -35,5 +35,4 @@ Next we need to enter the input and output order of the data that the program lo
 If we want our deep learning model to receive input data and predict output data, we must enter XY, and if we want our deep learning model to receive input data and reconstruct input data, like an autoencoder model, we must XX Enter.<br><br>
 
 <h2>LICENSE</h2>
-<hr>
 <a href='https://github.com/AntonioMinkowski/Deep-Distributed-Training-Systems/blob/main/LICENSE'> License </a>
