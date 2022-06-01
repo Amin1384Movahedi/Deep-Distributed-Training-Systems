@@ -177,7 +177,8 @@ def main(model_path, config_path, dataset_status, dataset, dataset_length):
 
     while True:
         # Check if all of clients connected to the server and received the model and dataset, shutting down the server
-        if index == (num_of_clients - 1):
+        if index == (num_of_clients):
+            server.close()
             sys.exit('[FINISH] Model and dataset broadcasting was finished')
 
         conn, addr = server.accept()
