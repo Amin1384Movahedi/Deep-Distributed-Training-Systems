@@ -2,7 +2,8 @@
 Created on 2022-05-07
 
 Author: Mohammad Amin Movahedi Moghadam
-Email: amin1384movahedi@gmail.com
+Zohomail: amin1384movahedi@zohomail.com
+Gmail: amin1384movahedi@gmail.com
 """
 
 import socket 
